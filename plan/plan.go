@@ -76,9 +76,6 @@ func Plan(in *Input) error {
 	if in.State == "" {
 		return fmt.Errorf("no state file specified")
 	}
-	if in.Change == "" {
-		return fmt.Errorf("no change file specified")
-	}
 
 	plan, err := ioutil.ReadFile(in.Plan)
 	if err != nil {
@@ -109,7 +106,10 @@ func Plan(in *Input) error {
 		}
 	}
 
-	applyChanges(in)
+	if in.change != nil {
+		applyChanges(in)
+		in.state.Serial++
+	}
 
 	add := []string{}
 	remove := []string{}
@@ -132,7 +132,7 @@ func Plan(in *Input) error {
 	for _, addr := range remove {
 		found, _, _ := findStateResourceByAddress(in.state, addr)
 		if found {
-			color.Red("+ %s", addr)
+			color.Red("- %s", addr)
 		} else if !in.HideUpdates {
 			color.Blue("* %s", addr)
 		}
