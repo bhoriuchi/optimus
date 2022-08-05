@@ -63,27 +63,29 @@ func (in *Input) absPaths() error {
 }
 
 func Plan(in *Input) error {
+	var plan []byte
 	in.plan = &types.Plan{}
 	in.state = &types.StateV4{}
 
-	if err := in.absPaths(); err != nil {
+	err := in.absPaths()
+	if err != nil {
 		return err
 	}
 
-	if in.Plan == "" {
-		return fmt.Errorf("no plan file specified")
+	// if plan was specified, process it
+	if in.Plan != "" {
+		plan, err = ioutil.ReadFile(in.Plan)
+		if err != nil {
+			return fmt.Errorf("failed to read plan file: %s", err)
+		}
+
+		if err := json.Unmarshal(plan, in.plan); err != nil {
+			return fmt.Errorf("failed to unmarshal plan file: %s", err)
+		}
 	}
+
 	if in.State == "" {
 		return fmt.Errorf("no state file specified")
-	}
-
-	plan, err := ioutil.ReadFile(in.Plan)
-	if err != nil {
-		return fmt.Errorf("failed to read plan file: %s", err)
-	}
-
-	if err := json.Unmarshal(plan, in.plan); err != nil {
-		return fmt.Errorf("failed to unmarshal plan file: %s", err)
 	}
 
 	state, err := ioutil.ReadFile(in.State)
@@ -111,40 +113,44 @@ func Plan(in *Input) error {
 		in.state.Serial++
 	}
 
-	add := []string{}
-	remove := []string{}
+	// add plan changes
+	if len(plan) > 0 {
+		add := []string{}
+		remove := []string{}
 
-	for _, change := range in.plan.ResourceChanges {
+		for _, change := range in.plan.ResourceChanges {
 
-		for _, action := range change.Change.Actions {
-			switch action {
-			case "create":
-				add = append(add, change.Address)
-			case "delete":
-				remove = append(remove, change.Address)
+			for _, action := range change.Change.Actions {
+				switch action {
+				case "create":
+					add = append(add, change.Address)
+				case "delete":
+					remove = append(remove, change.Address)
+				}
 			}
 		}
-	}
 
-	sort.Strings(add)
-	sort.Strings(remove)
+		sort.Strings(add)
+		sort.Strings(remove)
 
-	for _, addr := range remove {
-		found, _, _ := findStateResourceByAddress(in.state, addr)
-		if found {
-			color.Red("- %s", addr)
-		} else if !in.HideUpdates {
-			color.Blue("* %s", addr)
+		for _, addr := range remove {
+			found, _, _ := findStateResourceByAddress(in.state, addr)
+			if found {
+				color.Red("- %s", addr)
+			} else if !in.HideUpdates {
+				color.Blue("* %s", addr)
+			}
 		}
-	}
 
-	for _, addr := range add {
-		found, _, _ := findStateResourceByAddress(in.state, addr)
-		if !found {
-			color.Green("+ %s", addr)
-		} else if !in.HideUpdates {
-			color.Blue("* %s", addr)
+		for _, addr := range add {
+			found, _, _ := findStateResourceByAddress(in.state, addr)
+			if !found {
+				color.Green("+ %s", addr)
+			} else if !in.HideUpdates {
+				color.Blue("* %s", addr)
+			}
 		}
+
 	}
 
 	if in.Out != "" {
@@ -193,6 +199,10 @@ func applyChanges(in *Input) {
 			removeResource(in, op)
 		case "move_instance":
 			moveInstance(in, op)
+		case "upgrade_terraform":
+			upgradeTerraform(in, op)
+		case "provider_replace":
+			providerReplace(in, op)
 		}
 	}
 }

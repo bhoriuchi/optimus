@@ -3,10 +3,38 @@ package plan
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/bhoriuchi/optimus/types"
 	"github.com/fatih/color"
 )
+
+func upgradeTerraform(in *Input, op types.ChangeOperation) {
+	in.state.TerraformVersion = op.TerraformVersion
+}
+
+func providerReplace(in *Input, op types.ChangeOperation) {
+	replaceType := op.ReplaceType
+	if replaceType == "" {
+		replaceType = types.ReplaceTypePrefix
+	}
+
+	for _, resource := range in.state.Resources {
+		switch replaceType {
+		case types.ReplaceTypeExact:
+			if resource.ProviderConfig == op.Replace {
+				resource.ProviderConfig = op.With
+			}
+		case types.ReplaceTypePrefix:
+			fmt.Println(resource.ProviderConfig, op.Replace)
+			if strings.HasPrefix(resource.ProviderConfig, op.Replace) {
+				str := strings.TrimPrefix(resource.ProviderConfig, op.Replace)
+				resource.ProviderConfig = fmt.Sprintf("%s%s", op.With, str)
+			}
+		default:
+		}
+	}
+}
 
 // converts an object that uses a count to a map
 func countToMap(in *Input, op types.ChangeOperation) {
@@ -78,7 +106,7 @@ func moveInstance(in *Input, op types.ChangeOperation) {
 		}
 	}
 
-	if target == nil {
+	if target != nil {
 		log.Panicf("target resource %q not found", targetAddr)
 	}
 
