@@ -10,7 +10,7 @@ import (
 
 	"github.com/bhoriuchi/optimus/types"
 	"github.com/fatih/color"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 type Input struct {

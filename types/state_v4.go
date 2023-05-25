@@ -239,6 +239,22 @@ type InstanceObjectStateV4 struct {
 	CreateBeforeDestroy bool `json:"create_before_destroy,omitempty"`
 }
 
+func (i *InstanceObjectStateV4) SetAttribute(name string, value interface{}) error {
+	attrs, err := i.Attrs()
+	if err != nil {
+		return err
+	}
+
+	attrs[name] = value
+	b, err := json.Marshal(attrs)
+	if err != nil {
+		return err
+	}
+
+	i.AttributesRaw = b
+	return nil
+}
+
 // convert attributes to a map
 func (i *InstanceObjectStateV4) Attrs() (map[string]interface{}, error) {
 	attrs := map[string]interface{}{}

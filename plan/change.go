@@ -106,7 +106,7 @@ func moveInstance(in *Input, op types.ChangeOperation) {
 		}
 	}
 
-	if target != nil {
+	if target == nil {
 		log.Panicf("target resource %q not found", targetAddr)
 	}
 
@@ -124,6 +124,11 @@ func moveInstance(in *Input, op types.ChangeOperation) {
 		for _, instance := range resource.Instances {
 			addr := resource.Addr(instance.IndexKey)
 			if addr == op.Address {
+				if op.NewName != "" {
+					if err := instance.SetAttribute("name", op.NewName); err != nil {
+						log.Panicf("failed to set name on %s: %s", op.Address, err)
+					}
+				}
 				instance.IndexKey = indexKey
 				target.Instances = append(target.Instances, instance)
 			} else {

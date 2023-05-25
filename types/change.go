@@ -15,6 +15,7 @@ type ChangeOperation struct {
 	Operation        string           `yaml:"operation" json:"operation"`
 	Address          string           `yaml:"address" json:"address"`
 	NewAddress       string           `yaml:"new_address" json:"new_address"`
+	NewName          string           `yaml:"new_name" json:"new_name"`
 	Count            []ChangeCount    `yaml:"count" json:"count"`
 	Resource         *ResourceStateV4 `yaml:"resource" json:"resource"`
 	Validate         string           `yaml:"validate" json:"validate"`
